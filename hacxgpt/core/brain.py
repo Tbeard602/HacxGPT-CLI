@@ -119,7 +119,7 @@ class HacxBrain:
         
         try:
             full_content = ""
-            if self.tool_executor.definitions:
+            if Config.ENABLE_TOOLS and self.tool_executor.definitions:
                 conversation = self.client.conversation(
                     model=self.model,
                     tools=self.tool_executor.definitions,
@@ -148,7 +148,7 @@ class HacxBrain:
                     temperature=0.75,
                 )
 
-            if use_stream and not self.tool_executor.definitions:
+            if use_stream and not (Config.ENABLE_TOOLS and self.tool_executor.definitions):
                 for chunk in response:
                     # chunk is ChatCompletionChunk from api.py
                     if chunk.choices and len(chunk.choices) > 0:
@@ -165,7 +165,7 @@ class HacxBrain:
                         if content:
                             full_content += content
                             yield content
-            elif not self.tool_executor.definitions:
+            elif not (Config.ENABLE_TOOLS and self.tool_executor.definitions):
                 # Non-streaming response handling
                 msg = response.choices[0].message
                 content = msg.content or ""

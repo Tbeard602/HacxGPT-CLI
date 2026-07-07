@@ -138,6 +138,8 @@ class App:
                         "/provider <name> - Switch Provider\n"
                         "/models - List Models\n"
                         "/model <name> - Switch Model\n"
+                        "/agent on|off - Toggle tool-enabled agent mode\n"
+                        "/prompt <file|text> - Override the system prompt\n"
                         "/tools - List local tools\n"
                         "/setup - Configure API Keys\n"
                         "/status - Show current config\n"
@@ -202,9 +204,43 @@ class App:
                     status = (
                         f"Provider: [bold cyan]{Config.get_provider().upper()}[/]\n"
                         f"Model: [bold green]{Config.get_model()}[/]\n"
+                        f"Agent mode: [bold yellow]{'on' if Config.ENABLE_TOOLS else 'off'}[/]\n"
                         f"Local tools: [bold yellow]{tool_count}[/]"
                     )
                     self.ui.show_msg("System Status", status, "blue")
+                    continue
+
+                if prompt.lower().startswith('/agent'):
+                    parts = prompt.split()
+                    if len(parts) < 2:
+                        self.ui.show_msg("Usage", "/agent on|off", "yellow")
+                        continue
+                    mode = parts[1].lower()
+                    if mode in ("on", "enable", "enabled"):
+                        Config.ENABLE_TOOLS = True
+                        self.ui.show_msg("Agent Mode", "Tool-enabled agent mode is now on.", "green")
+                    elif mode in ("off", "disable", "disabled"):
+                        Config.ENABLE_TOOLS = False
+                        self.ui.show_msg("Agent Mode", "Tool-enabled agent mode is now off.", "yellow")
+                    else:
+                        self.ui.show_msg("Usage", "/agent on|off", "yellow")
+                    continue
+
+                if prompt.lower().startswith('/prompt'):
+                    parts = prompt.split(maxsplit=1)
+                    if len(parts) < 2:
+                        self.ui.show_msg("Usage", "/prompt <file path|inline text>", "yellow")
+                        continue
+                    value = parts[1].strip()
+                    if os.path.exists(value):
+                        os.environ["HACX_SYSTEM_PROMPT_FILE"] = value
+                        self.ui.show_msg("Prompt Override", f"System prompt loaded from: {value}", "green")
+                    else:
+                        os.environ["HACX_SYSTEM_PROMPT"] = value
+                        self.ui.show_msg("Prompt Override", "Inline system prompt override set for this session.", "green")
+                    self.brain.system_prompt = Config.load_system_prompt()
+                    if not Config.is_hacxgpt_model(Config.get_model()):
+                        self.brain.reset()
                     continue
 
                 if prompt.lower() == '/tools':

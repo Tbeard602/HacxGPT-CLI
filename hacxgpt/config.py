@@ -17,6 +17,7 @@ class Config:
     SELECTED_PROVIDER_ALIAS = None
     SELECTED_MODEL_ALIAS = None
     STREAMING = False  # Global toggle for streaming
+    ENABLE_TOOLS = True
     
     # Defaults
     DEFAULT_PROVIDER = "hacxgpt"
@@ -106,6 +107,15 @@ class Config:
     def load_system_prompt(cls):
         """Loads the system prompt from the prompt file."""
         try:
+            override_path = os.environ.get("HACX_SYSTEM_PROMPT_FILE")
+            if override_path and os.path.exists(override_path):
+                with open(override_path, "r", encoding="utf-8") as f:
+                    return f.read()
+
+            override_inline = os.environ.get("HACX_SYSTEM_PROMPT")
+            if override_inline:
+                return override_inline
+
             current_dir = os.path.dirname(os.path.abspath(__file__))
             prompt_path = os.path.join(current_dir, 'prompts', 'system_prompt.md')
             with open(prompt_path, 'r', encoding='utf-8') as f:

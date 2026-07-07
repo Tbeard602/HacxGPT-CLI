@@ -2,8 +2,9 @@ HacxGPT-CLI fork work in progress.
 
 Current status:
 - Local tool registry added for `list_directory`, `read_file`, and `search_text`
-- CLI now exposes `/tools` and reports local tool count in `/status`
-- Chat path now uses the tool executor when tools are registered
+- Tool collection expanded with `grep_lines`, `file_stats`, `system_info`, `process_snapshot`, `current_time`, and `web_search`
+- CLI now exposes `/tools`, `/agent`, and `/prompt`
+- Chat path uses the tool executor only when agent mode is enabled
 
 Open TODOs:
 - Validate tool-calling behavior against a live provider/model
