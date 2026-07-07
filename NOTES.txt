@@ -1,0 +1,16 @@
+HacxGPT-CLI fork work in progress.
+
+Current status:
+- Local tool registry added for `list_directory`, `read_file`, and `search_text`
+- CLI now exposes `/tools` and reports local tool count in `/status`
+- Chat path now uses the tool executor when tools are registered
+
+Open TODOs:
+- Validate tool-calling behavior against a live provider/model
+- Decide whether to add more tools or tighten the allowlist
+- Reconcile any existing UI changes before final release
+
+Useful paths:
+- `hacxgpt/core/brain.py`
+- `hacxgpt/core/tools.py`
+- `hacxgpt/main.py`

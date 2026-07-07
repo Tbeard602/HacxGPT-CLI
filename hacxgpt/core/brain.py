@@ -2,10 +2,12 @@ import sys
 import os
 import json
 import time
+import copy
 from typing import Generator, List
 from ..config import Config
 from ..ui.interface import UI 
 from .api import Client
+from .tools import builtin_tools
 
 
 class HacxBrain:
@@ -20,6 +22,9 @@ class HacxBrain:
             os.makedirs(self.session_dir)
             
         self._init_client()
+        self.tool_executor = self.client.tool_executor()
+        for tool_name, fn in builtin_tools():
+            self.tool_executor.register(fn, name=tool_name)
         
         # HacxGPT models don't need the system prompt history
         if Config.is_hacxgpt_model(self.model):
@@ -113,16 +118,37 @@ class HacxBrain:
         use_stream = Config.STREAMING
         
         try:
-            # Using the local API client (it mimics OpenAI SDK)
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.history,
-                stream=use_stream,
-                temperature=0.75
-            )
-            
             full_content = ""
-            if use_stream:
+            if self.tool_executor.definitions:
+                conversation = self.client.conversation(
+                    model=self.model,
+                    tools=self.tool_executor.definitions,
+                    tool_executor=self.tool_executor,
+                    temperature=0.75,
+                )
+                conversation.messages = copy.deepcopy(self.history)
+                response = conversation.send(stream=False)
+                msg = response.choices[0].message
+                content = msg.content or ""
+                reasoning = getattr(msg, "reasoning_content", None) or getattr(msg, "thought", None)
+                if reasoning:
+                    full_content = f"<think>{reasoning}</think>{content}"
+                else:
+                    full_content = content
+                if content:
+                    self.history = copy.deepcopy(conversation.messages)
+                else:
+                    self.history.append({"role": "assistant", "content": full_content})
+            else:
+                # Using the local API client (it mimics OpenAI SDK)
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=self.history,
+                    stream=use_stream,
+                    temperature=0.75,
+                )
+
+            if use_stream and not self.tool_executor.definitions:
                 for chunk in response:
                     # chunk is ChatCompletionChunk from api.py
                     if chunk.choices and len(chunk.choices) > 0:
@@ -139,7 +165,7 @@ class HacxBrain:
                         if content:
                             full_content += content
                             yield content
-            else:
+            elif not self.tool_executor.definitions:
                 # Non-streaming response handling
                 msg = response.choices[0].message
                 content = msg.content or ""
@@ -148,6 +174,8 @@ class HacxBrain:
                     full_content = f"<think>{reasoning}</think>{content}"
                 else:
                     full_content = content
+                yield full_content
+            else:
                 yield full_content
             
             if not full_content:

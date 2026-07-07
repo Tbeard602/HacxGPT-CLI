@@ -138,6 +138,7 @@ class App:
                         "/provider <name> - Switch Provider\n"
                         "/models - List Models\n"
                         "/model <name> - Switch Model\n"
+                        "/tools - List local tools\n"
                         "/setup - Configure API Keys\n"
                         "/status - Show current config\n"
                         "/save <name> - Save current session\n"
@@ -197,8 +198,25 @@ class App:
                     continue
 
                 if prompt.lower() == '/status':
-                    status = f"Provider: [bold cyan]{Config.get_provider().upper()}[/]\nModel: [bold green]{Config.get_model()}[/]"
+                    tool_count = len(getattr(self.brain.tool_executor, "definitions", [])) if self.brain else 0
+                    status = (
+                        f"Provider: [bold cyan]{Config.get_provider().upper()}[/]\n"
+                        f"Model: [bold green]{Config.get_model()}[/]\n"
+                        f"Local tools: [bold yellow]{tool_count}[/]"
+                    )
                     self.ui.show_msg("System Status", status, "blue")
+                    continue
+
+                if prompt.lower() == '/tools':
+                    tools = getattr(self.brain.tool_executor, "definitions", []) if self.brain else []
+                    if not tools:
+                        self.ui.show_msg("Local Tools", "No local tools are registered.", "yellow")
+                    else:
+                        lines = []
+                        for tool in tools:
+                            fn = tool.get("function", {})
+                            lines.append(f"- {fn.get('name')}: {fn.get('description', 'No description')}")
+                        self.ui.show_msg("Local Tools", "\n".join(lines), "cyan")
                     continue
 
                 if prompt.lower() == '/providers':
